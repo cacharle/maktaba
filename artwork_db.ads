@@ -1,4 +1,8 @@
+with Ada.Sequential_IO;
+
+
 package Artwork_DB is
+
 	type T_Category is (
 		CATEGORY_FILM,
 		CATEGORY_GAME,
@@ -23,7 +27,6 @@ package Artwork_DB is
 		CONSOLE_NINTENDO64
 	);
 
-	-- need Integer range <>
 	type T_Songs is array(1..100) of String(1..256);
 
 	type T_Artwork(category: T_Category := CATEGORY_OTHER) is
@@ -46,15 +49,24 @@ package Artwork_DB is
 		end case;
 	end record;
 
+	package P_Artwork_Sequential is new Ada.Sequential_IO(T_Artwork);
+	use     P_Artwork_Sequential;
+
 	procedure Get(artwork: out T_Artwork);
 	procedure Save(artwork: T_Artwork);
 	procedure Modify(artwork: T_Artwork);
 	procedure Delete(artwork: T_Artwork);
 	procedure Display;
 
-	dirname_data:   constant String := "./data/";
-	filename_film:  constant String := "film.db";
-	filename_game:  constant String := "game.db";
-	filename_album: constant String := "album.db";
-	filename_other: constant String := "other.db";
+private
+
+	procedure Open_Artwork_File(category: T_Category;
+							    file: out P_Artwork_Sequential.File_Type;
+								mode: File_Mode := In_File);
+
+	filename_film:  constant String := "./data/film.db";
+	filename_game:  constant String := "./data/game.db";
+	filename_album: constant String := "./data/album.db";
+	filename_other: constant String := "./data/other.db";
+
 end Artwork_DB;

@@ -1,19 +1,16 @@
 with Artwork_DB;
 use  Artwork_DB;
 
-with Ada.Text_IO, Ada.Integer_Text_IO, Ada.Characters.Handling;
-use  Ada.Text_IO, Ada.Integer_Text_IO, Ada.Characters.Handling;
+with Ada.Text_IO, Ada.Integer_Text_IO, Ada.Characters.Handling, Ada.Strings.Fixed;
+use  Ada.Text_IO, Ada.Integer_Text_IO, Ada.Characters.Handling, Ada.Strings.Fixed;
 
-with Ada.Sequential_IO;
 
 package body Artwork_DB is
 
-	package P_Artwork_File is new Ada.Sequential_IO(T_Artwork);
-	use     P_Artwork_File;
-
 	procedure Get(artwork: out T_Artwork) is
+		last:			Natural;
 		category:		T_Category;
-		title:			String(1..256);
+		title:			String(1..256) := (others => Character'Val(0));
 		support:		T_Support;
 		rating:			T_Rating;
 		director:		String(1..256);
@@ -28,16 +25,16 @@ package body Artwork_DB is
 		Put_Line("Creation of new record");
 
 		Put("Title: ");
-		Get(title);
-		Skip_Line;
-		New_Line;
+		Get_Line(title, last);
 
-		Put_Line("Support: [1] cd");
-		Put_Line("         [2] dvd");
-		Put_Line("         [3] blueray");
-		Put_Line("         [4] vhs");
-		Put_Line("         [5] hddvd");
+		Put_Line("- [1] cd");
+		Put_Line("- [2] dvd");
+		Put_Line("- [3] blueray");
+		Put_Line("- [4] vhs");
+		Put_Line("- [5] hddvd");
+		Put("Support: ");
 		Get(choice_input);
+		Skip_Line;
 		case choice_input is
 			when 1 => support := SUPPORT_CD;
 			when 2 => support := SUPPORT_DVD;
@@ -50,13 +47,14 @@ package body Artwork_DB is
 		Put("Rating (1|2|3): ");
 		Get(rating);
 		Skip_Line;
-		New_Line;
 
-		Put_Line("Category: [1] film");
-		Put_Line("          [2] game");
-		Put_Line("          [3] album");
-		Put_Line("          [4] other");
+		Put_Line("- [1] film");
+		Put_Line("- [2] game");
+		Put_Line("- [3] album");
+		Put_Line("- [4] other");
+		Put("Category: ");
 		Get(choice_input);
+		Skip_Line;
 		case choice_input is
 			when 1 => category := CATEGORY_FILM;
 			when 2 => category := CATEGORY_GAME;
@@ -68,13 +66,11 @@ package body Artwork_DB is
 		case category is
 			when CATEGORY_FILM =>
 				Put("Director: ");
-				Get(director);
-				Skip_Line;
+				Get_Line(director, last);
 				New_Line;
 
 				Put("Is it in vf? [Y/n]: ");
-				Get(choice_yes_no);
-				Skip_Line;
+				Get_Line(choice_yes_no, last);
 				New_Line;
 
 				choice_yes_no := to_lower(choice_yes_no);
@@ -84,12 +80,14 @@ package body Artwork_DB is
 				else
 					is_vf := choice_yes_no(1) = 'Y';
 				end if;
+				artwork := (CATEGORY_FILM, title, support, rating, director, is_vf);
 
 			when CATEGORY_GAME =>
-				Put_Line("Console: [1] nes");
-				Put_Line("         [2] ps1");
-				Put_Line("         [3] pc");
-				Put_Line("         [4] nintendo64");
+				Put_Line("- [1] nes");
+				Put_Line("- [2] ps1");
+				Put_Line("- [3] pc");
+				Put_Line("- [4] nintendo64");
+				Put("Console: ");
 				Get(choice_input);
 				case choice_input is
 					when 1 => console := CONSOLE_NES;
@@ -98,17 +96,8 @@ package body Artwork_DB is
 					when 4 => console := CONSOLE_NINTENDO64;
 					when others => Put_Line("Not a valid choice");
 				end case;
+				artwork := (CATEGORY_GAME, title, support, rating, console, finished);
 
-			when CATEGORY_ALBUM =>
-				null;
-			when others => null;
-		end case;
-
-		case category is
-			when CATEGORY_FILM  => artwork := (CATEGORY_FILM, title, support, rating,
-											   director, is_vf);
-			when CATEGORY_GAME  => artwork := (CATEGORY_GAME, title, support, rating,
-												console, finished);
 			when CATEGORY_ALBUM => artwork := (CATEGORY_ALBUM, title, support, rating,
 											   artist, songs);
 			when CATEGORY_OTHER => artwork := (CATEGORY_OTHER, title, support, rating);
@@ -116,9 +105,9 @@ package body Artwork_DB is
 	end Get;
 
 	procedure Save(artwork: T_Artwork) is
-		file:			P_Artwork_File.File_Type;
+		file:			P_Artwork_Sequential.File_Type;
 	begin
-		Create(file, In_File, dirname_data & filename_film);
+		Open_Artwork_File(artwork.category, file, Append_File);
 		Write(file, artwork);
 		Close(file);
 	end Save;
@@ -134,17 +123,42 @@ package body Artwork_DB is
 	end Delete;
 
 	procedure Display is
-		file:			P_Artwork_File.File_Type;
-		tmp_artwork:	T_Artwork;
+		file:		P_Artwork_Sequential.File_Type;
+		artwork:	T_Artwork;
+		index:		Natural := 1;
 	begin
-		Create(file, Out_File, dirname_data & filename_film);
+		for category in T_Category loop
+			Put_Line(T_Category'Image(category));
+			Put_Line(T_Category'Image(category)'Length * "=");
+			New_Line;
 
-		while not End_Of_File(file) loop
-			Read(file, tmp_artwork);
-			put(tmp_artwork.title);
+			Open_Artwork_File(category, file, In_File);
+			while not End_Of_File(file) loop
+				Read(file, artwork);
+				Put_Line("Record" & Integer'Image(index));
+				Put_Line("    Title:    " & artwork.title);
+				Put_Line("    Support:  " & T_Support'Image(artwork.support));
+				Put_Line("    Rating:  " & Integer'Image(artwork.rating));
+				Put_Line("    Category: " & T_Category'Image(artwork.category));
+				New_Line;
+				index := index + 1;
+			end loop;
+			Close(file);
 		end loop;
-
-		Close(file);
 	end Display;
+
+
+	procedure Open_Artwork_File(category: T_Category;
+							    file: out P_Artwork_Sequential.File_Type;
+								mode: P_Artwork_Sequential.File_Mode := In_File)
+	is
+	begin
+		case category is
+			when CATEGORY_FILM  => Open(file, mode, filename_film);
+			when CATEGORY_GAME  => Open(file, mode, filename_game);
+			when CATEGORY_ALBUM => Open(file, mode, filename_album);
+			when CATEGORY_OTHER => Open(file, mode, filename_other);
+		end case;
+	end Open_Artwork_File;
 
 end Artwork_DB;
