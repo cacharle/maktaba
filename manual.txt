@@ -1,0 +1,5 @@
+- add    : Add a record in database
+- modify : Modify a record in database
+- delete : Delete a record in database
+- print  : Print whole database
+- manual : Print this help

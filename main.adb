@@ -1,5 +1,5 @@
-with Artwork;
-use  Artwork;
+with Artwork_DB;
+use  Artwork_DB;
 
 
 procedure Main is
