@@ -65,8 +65,6 @@ private
 								mode: File_Mode := In_File);
 	procedure Get_Yes_No(msg: String;
 						 yes_no: out Boolean);
-	procedure Get_Select(selection: String;
-						 choice: Natural);
 
 	filename_film:  constant String := "./data/film.db";
 	filename_game:  constant String := "./data/game.db";

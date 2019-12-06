@@ -206,14 +206,4 @@ package body Artwork_DB is
 		New_Line;
 	end Get_Yes_No;
 
-	procedure Get_Select(selection: String;
-						 choice: Natural)
-	is
-	begin
-
-
-		null;
-
-	end Get_Select;
-
 end Artwork_DB;

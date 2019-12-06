@@ -6,6 +6,20 @@ use  Artwork_DB;
 
 
 procedure Main is
+	filename_manual: constant String := "manual.txt";
+	procedure Put_Manual is
+		file: File_Type;
+		line: String(1..256);
+		last: Natural;
+	begin
+		Open(file, In_File, filename_manual);
+		while not End_Of_File(file) loop
+			Get_Line(file, line, last);
+			Put_Line(line(line'First..last));
+		end loop;
+		Close(file);
+	end Put_Manual;
+
 	user_input:		String(1..256) := (others => Character'Val(0));
 	user_input_len:	Natural;
 	tmp_artwork:	T_Artwork;
@@ -26,7 +40,7 @@ begin
 		elsif user_input(1..5) = "print" then
 			Display;
 		elsif user_input(1..6) = "manual" then
-			Put_Line("bonjour");
+			Put_Manual;
 		elsif user_input(1..4) = "exit" then
 			exit;
 		else
