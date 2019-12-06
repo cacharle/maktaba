@@ -13,14 +13,14 @@ package body Artwork_DB is
 		title:			String(1..256) := (others => Character'Val(0));
 		support:		T_Support;
 		rating:			T_Rating;
-		director:		String(1..256);
+		director:		String(1..256) := (others => Character'Val(0));
 		is_vf:			Boolean;
 		console:		T_Console;
 		finished:		Boolean;
-		artist:			String(1..256);
-		songs:			T_Songs;
+		artist:			String(1..256) := (others => Character'Val(0));
+		songs:			T_Songs := (others => (others => Character'Val(0)));
+		song_str:		String(1..256);
 		choice_input:	Integer;
-		choice_yes_no:	String(1..256);
 	begin
 		Put_Line("Creation of new record");
 
@@ -69,17 +69,7 @@ package body Artwork_DB is
 				Get_Line(director, last);
 				New_Line;
 
-				Put("Is it in vf? [Y/n]: ");
-				Get_Line(choice_yes_no, last);
-				New_Line;
-
-				choice_yes_no := to_lower(choice_yes_no);
-				if choice_yes_no'length /= 1 or
-				   (choice_yes_no(1) /= 'Y' and choice_yes_no(1) /= 'n') then
-					Put_Line("Bad Input");
-				else
-					is_vf := choice_yes_no(1) = 'Y';
-				end if;
+				Get_Yes_No("Is it in vf?", is_vf);
 				artwork := (CATEGORY_FILM, title, support, rating, director, is_vf);
 
 			when CATEGORY_GAME =>
@@ -96,10 +86,22 @@ package body Artwork_DB is
 					when 4 => console := CONSOLE_NINTENDO64;
 					when others => Put_Line("Not a valid choice");
 				end case;
+				Get_Yes_No("Have you finished this game?", finished);
 				artwork := (CATEGORY_GAME, title, support, rating, console, finished);
 
-			when CATEGORY_ALBUM => artwork := (CATEGORY_ALBUM, title, support, rating,
-											   artist, songs);
+			when CATEGORY_ALBUM =>
+				Put("Artist: ");
+				Get_Line(artist, last);
+				New_Line;
+				Put_Line("Enter Songs (enter empty line to finish)");
+				for i in songs'Range loop
+					Put(">song> ");
+					Get_Line(song_str, last);
+					exit when last = 0;
+					songs(i)(songs(i)'First..last) := song_str(song_str'First..last);
+				end loop;
+				artwork := (CATEGORY_ALBUM, title, support, rating, artist, songs);
+
 			when CATEGORY_OTHER => artwork := (CATEGORY_OTHER, title, support, rating);
 		end case;
 	end Get;
@@ -125,14 +127,17 @@ package body Artwork_DB is
 	procedure Display is
 		file:		P_Artwork_Sequential.File_Type;
 		artwork:	T_Artwork;
-		index:		Natural := 1;
+		index:		Natural;
 	begin
 		for category in T_Category loop
-			Put_Line(T_Category'Image(category));
-			Put_Line(T_Category'Image(category)'Length * "=");
-			New_Line;
-
+			index := 1;
 			Open_Artwork_File(category, file, In_File);
+			if not End_Of_File(file) then
+				Put_Line(T_Category'Image(category));
+				Put_Line(T_Category'Image(category)'Length * "=");
+				New_Line;
+			end if;
+
 			while not End_Of_File(file) loop
 				Read(file, artwork);
 				Put_Line("Record" & Integer'Image(index));
@@ -140,6 +145,25 @@ package body Artwork_DB is
 				Put_Line("    Support:  " & T_Support'Image(artwork.support));
 				Put_Line("    Rating:  " & Integer'Image(artwork.rating));
 				Put_Line("    Category: " & T_Category'Image(artwork.category));
+				case artwork.category is
+					when CATEGORY_FILM =>
+						Put_Line("    Director: " & artwork.director);
+						Put_Line("    VF: " & (if artwork.is_vf then "Yes" else "No"));
+					when CATEGORY_GAME =>
+						Put_Line("    Console: " & T_Console'Image(artwork.console));
+						Put_Line("    Finished: "
+						         & (if artwork.finished then "Yes" else "No"));
+					when CATEGORY_ALBUM =>
+						Put_Line("    Artist: " & artwork.artist);
+						if artwork.songs'Length /= 0 then
+							Put_Line("    Songs:");
+						end if;
+						for i in artwork.songs'Range loop
+							exit when artwork.songs(i)(1) = Character'Val(0);
+							Put_Line("    - " & artwork.songs(i));
+						end loop;
+					when CATEGORY_OTHER => null;
+				end case;
 				New_Line;
 				index := index + 1;
 			end loop;
@@ -160,5 +184,36 @@ package body Artwork_DB is
 			when CATEGORY_OTHER => Open(file, mode, filename_other);
 		end case;
 	end Open_Artwork_File;
+
+	procedure Get_Yes_No(msg: String;
+						 yes_no: out Boolean)
+	is
+		user_input:		String(1..256);
+		user_input_len:	Natural;
+	begin
+		loop
+			Put(msg & "[Y/n] ");
+			Get_Line(user_input, user_input_len);
+			user_input := to_lower(user_input);
+			if user_input_len /= 1 or
+			   (user_input(1) /= 'y' and user_input(1) /= 'n') then
+				Put_Line("Bad choice");
+			else
+				yes_no := user_input(1) = 'Y';
+				exit;
+			end if;
+		end loop;
+		New_Line;
+	end Get_Yes_No;
+
+	procedure Get_Select(selection: String;
+						 choice: Natural)
+	is
+	begin
+
+
+		null;
+
+	end Get_Select;
 
 end Artwork_DB;

@@ -27,7 +27,7 @@ package Artwork_DB is
 		CONSOLE_NINTENDO64
 	);
 
-	type T_Songs is array(1..100) of String(1..256);
+	type T_Songs is array(1..30) of String(1..256);
 
 	type T_Artwork(category: T_Category := CATEGORY_OTHER) is
 	record
@@ -63,6 +63,10 @@ private
 	procedure Open_Artwork_File(category: T_Category;
 							    file: out P_Artwork_Sequential.File_Type;
 								mode: File_Mode := In_File);
+	procedure Get_Yes_No(msg: String;
+						 yes_no: out Boolean);
+	procedure Get_Select(selection: String;
+						 choice: Natural);
 
 	filename_film:  constant String := "./data/film.db";
 	filename_game:  constant String := "./data/game.db";
